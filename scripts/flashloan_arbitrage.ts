@@ -9,37 +9,45 @@ dotenv.config();
 async function main() {
   console.log("start to deploy");
 
-  const V3FlashLoan = await ethers.getContractFactory("V3FlashLoan");
-  const flashLoan = await V3FlashLoan.deploy();
+  const FlashLoanArbitrage = await ethers.getContractFactory(
+    "FlashLoanArbitrage"
+  );
+  const flashLoanArbitrage = await FlashLoanArbitrage.deploy();
 
-  await flashLoan.deployed();
+  await flashLoanArbitrage.deployed();
 
-  console.log("FlashLoan deployed to:", flashLoan.address);
+  console.log("FlashLoan deployed to:", flashLoanArbitrage.address);
 
   console.log("start dapp");
 
   // Connect to the network
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.MAIN_SERVER_URL ?? ""
+    process.env.KOVAN_SERVER_URL ?? ""
   );
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY ?? "", provider);
 
   const contract = new ethers.Contract(
-    flashLoan.address,
+    flashLoanArbitrage.address,
     FlashLoanArbitrageArtifact.abi,
     wallet
   ) as FlashLoanArbitrage;
 
   const weth = new ethers.Contract(
-    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // weth
+    "0xd0A1E359811322d97991E03f863a0C30C2cF029C", // kovan weth
     IERC20Artifact.abi,
     wallet
   ) as IERC20;
 
-  const loanAmount = ethers.utils.parseUnits("0.001", 18);
+  const logFilter = contract.filters["Log(string,uint256)"];
 
-  const uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
-  const sushiswap = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F";
+  contract.on(logFilter(), (message, val) => {
+    console.log(`${message}: ${val}`);
+  });
+
+  const loanAmount = ethers.utils.parseUnits("1", 18);
+
+  const uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"; // kovan uniswap
+  const sushiswap = "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"; // kovan sushiswap
 
   const result = await contract.initiateFlashLoan(
     weth.address,

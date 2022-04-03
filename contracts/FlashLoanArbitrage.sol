@@ -6,8 +6,11 @@ import "./interfaces/DydxFlashloanBase.sol";
 import "./interfaces/ICallee.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
+    using SafeMath for uint256;
+
     // main 0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e
     // kovan 0x4EC3570cADaAEE08Ae384779B0f3A45EF85289DE
     address private constant SOLO = 0x4EC3570cADaAEE08Ae384779B0f3A45EF85289DE;
@@ -15,12 +18,20 @@ contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
     // kovan 0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa
     address private constant DAI = 0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa;
 
+    event Log(string message, uint256 val);
+
     IUniswapV2Router02 public swapRouter1;
     IUniswapV2Router02 public swapRouter2;
+
+    address private owner;
 
     struct MyCustomData {
         address token;
         uint256 repayAmount;
+    }
+
+    constructor(){
+        owner = msg.sender;
     }
 
     function initiateFlashLoan(
@@ -34,13 +45,6 @@ contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
         swapRouter1 = IUniswapV2Router02(_swapRouter1);
         swapRouter2 = IUniswapV2Router02(_swapRouter2);
 
-        // Get marketId from token address
-        /*
-    0	WETH
-    1	SAI
-    2	USDC
-    3	DAI
-    */
         uint256 marketId = _getMarketIdFromTokenAddress(SOLO, _token);
 
         // Calculate repay amount (_amount + (2 wei))
@@ -78,16 +82,34 @@ contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
         MyCustomData memory mcd = abi.decode(data, (MyCustomData));
         uint256 repayAmount = mcd.repayAmount;
 
-        uint256 bal = IERC20(mcd.token).balanceOf(address(this));
-        require(bal >= repayAmount, "bal < repay");
+        uint256 balance = IERC20(mcd.token).balanceOf(address(this));
 
-        uint256 amountOut = swapExactInputSingle(bal, mcd.token, DAI, true);
+        emit Log("repay", repayAmount);
+
+        emit Log("before balance", balance);
+
+        uint256 amountOut = swapExactInputSingle(
+            balance,
+            mcd.token,
+            DAI,
+            true
+        );
+
+        uint256 _balance = IERC20(mcd.token).balanceOf(address(this));
+
+        emit Log("after 1 balance", _balance);
+
         swapExactInputSingle(amountOut, DAI, mcd.token, false);
 
-        IERC20(mcd.token).transfer(msg.sender, bal - repayAmount);
+        uint256 __balance = IERC20(mcd.token).balanceOf(address(this));
 
-        uint256 profit = IERC20(mcd.token).balanceOf(address(this));
-        require(profit >= repayAmount, "profit < repay");
+        emit Log("after 2 balance", __balance);
+
+        uint256 profit = __balance.sub(repayAmount);
+
+        emit Log("profit", profit);
+
+        IERC20(mcd.token).transfer(owner, profit);
     }
 
     function swapExactInputSingle(
@@ -111,10 +133,10 @@ contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
                 amountIn,
                 0,
                 path,
-                msg.sender,
+                address(this),
                 block.timestamp
             );
 
-        amountOut = amountOuts[0];
+        amountOut = amountOuts[1];
     }
 }

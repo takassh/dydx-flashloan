@@ -13,7 +13,7 @@ import {
   Signer,
   utils,
 } from "ethers";
-import { FunctionFragment, Result } from "@ethersproject/abi";
+import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
@@ -69,8 +69,19 @@ export interface FlashLoanArbitrageInterface extends utils.Interface {
     data: BytesLike
   ): Result;
 
-  events: {};
+  events: {
+    "Log(string,uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "Log"): EventFragment;
 }
+
+export type LogEvent = TypedEvent<
+  [string, BigNumber],
+  { message: string; val: BigNumber }
+>;
+
+export type LogEventFilter = TypedEventFilter<LogEvent>;
 
 export interface FlashLoanArbitrage extends BaseContract {
   contractName: "FlashLoanArbitrage";
@@ -160,7 +171,10 @@ export interface FlashLoanArbitrage extends BaseContract {
     swapRouter2(overrides?: CallOverrides): Promise<string>;
   };
 
-  filters: {};
+  filters: {
+    "Log(string,uint256)"(message?: null, val?: null): LogEventFilter;
+    Log(message?: null, val?: null): LogEventFilter;
+  };
 
   estimateGas: {
     callFunction(
