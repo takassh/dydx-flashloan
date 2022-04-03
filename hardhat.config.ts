@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  defaultNetwork: "rinkeby",
+  defaultNetwork: "kovan",
   networks: {
     ropsten: {
       url: process.env.ROPSTEN_SERVER_URL,

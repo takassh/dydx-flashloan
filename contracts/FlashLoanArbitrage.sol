@@ -8,9 +8,12 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 contract FlashLoanArbitrage is ICallee, DydxFlashloanBase {
-    //main net
-    address private constant SOLO = 0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e;
-    address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    // main 0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e
+    // kovan 0x4EC3570cADaAEE08Ae384779B0f3A45EF85289DE
+    address private constant SOLO = 0x4EC3570cADaAEE08Ae384779B0f3A45EF85289DE;
+    // main 0x6B175474E89094C44Da98b954EedeAC495271d0F
+    // kovan 0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa
+    address private constant DAI = 0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa;
 
     IUniswapV2Router02 public swapRouter1;
     IUniswapV2Router02 public swapRouter2;
